@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+     
+<mapper namespace="user">
+	<select id="login" parameterType="com.travel360.travel360Server.domain.UserDto" resultType="com.travel360.travel360Server.domain.UserDto">
+		select
+			seq,
+			id,
+			password,
+			permission_check
+		from
+			user_info
+		where
+			id = #{id} and
+			password = #{password}
+	</select>
+	<select id="getUserInfo" parameterType="com.travel360.travel360Server.domain.UserDto" resultType="com.travel360.travel360Server.domain.UserDto">
+		select
+			*
+		from
+			user_info
+		where
+			seq = #{seq}
+	</select>
+	
+	
+	
+	<select id="countFriend" parameterType="com.travel360.travel360Server.domain.UserDto" resultType="integer">
+		select
+			count(*)
+		from
+			friends_info
+		where
+			user_info_seq = #{seq} and
+			permission = TRUE
+	</select>
+	
+	<select id="countFavorite" parameterType="com.travel360.travel360Server.domain.UserDto" resultType="integer">
+		select
+			count(*)
+		from
+			favorite_traveler
+		where
+			traveler = #{seq}
+	</select>
+	
+	<select id="friendsList" parameterType="com.travel360.travel360Server.domain.UserDto" resultType="com.travel360.travel360Server.domain.UserDto">
+		select
+			user_info.seq,
+			user_info.id,
+			user_info.name,
+			user_info.email,
+			user_info.profile_image
+		from
+			user_info, friends_info
+		where
+			friends_info.user_info_seq = #{seq} and
+			friends_info.permission = #{permission_check} and
+			friends_info.friends_seq = user_info.seq
+	</select>	
+	
+	<select id="requestFriendsList" parameterType="com.travel360.travel360Server.domain.UserDto" resultType="com.travel360.travel360Server.domain.UserDto">
+		select
+			user_info.seq,
+			user_info.id,
+			user_info.name,
+			user_info.email,
+			user_info.profile_image
+		from
+			user_info, friends_info
+		where
+			friends_info.friends_seq = #{seq} and
+			friends_info.permission = false and
+			friends_info.user_info_seq = user_info.seq
+	</select>
+	
+	<insert id="addFriend" parameterType="com.travel360.travel360Server.domain.FriendsDto">
+		insert into
+			friends_info(user_info_seq,friends_seq,permission)
+		values(#{user_info_seq},#{friends_seq},FALSE)
+	</insert>
+	
+	<insert id="addFavorite" parameterType="com.travel360.travel360Server.domain.FavoriteDto">
+		insert into
+			favorite_traveler(user_info_seq,traveler)
+		values(#{user_info_seq},#{traveler})
+	</insert>
+	
+	<update id="acceptFriend" parameterType="com.travel360.travel360Server.domain.FriendsDto">
+		update 
+			friends_info
+		set
+			permission = TRUE
+		where
+			user_info_seq = #{user_info_seq} and
+			seq = #{friends_seq}
+	</update>
+	
+	<insert id="registUser" parameterType="com.travel360.travel360Server.domain.UserDto">
+		insert into
+			user_info(id,password,permission_check,name,email,profile_image)
+		values(#{id},#{password},#{permission_check},#{name},#{email},#{profile_image})
+	</insert>
+	<select id="searchUser" parameterType="com.travel360.travel360Server.domain.UserDto" resultType="com.travel360.travel360Server.domain.UserDto">
+		select
+			*
+		from
+			user_info
+		where
+			user_info.id like #{id}
+	</select>
+</mapper>

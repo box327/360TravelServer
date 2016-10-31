@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+     
+<mapper namespace="review">
+	<insert id="insertReview" parameterType="com.travel360.travel360Server.domain.TravelReviewDto">
+		insert into
+			travel_review(write_date,text,temp,user_info_seq,location)
+		values
+			(#{write_date},#{text},1,#{user_info_seq},#{location})
+		
+	</insert>
+	<insert id="insertReviewComment" parameterType="com.travel360.travel360Server.domain.TravelReviewComment">
+		insert into
+			travel_review_comment(write_date,comment,evaluation,user_info_seq,travel_review_seq)
+		values
+			(#{write_date},#{comment},#{evaluation},#{user_info_seq},#{travel_review_seq})
+		
+	</insert>
+	<select id="getReviewRankingList" resultType="com.travel360.travel360Server.domain.TravelReviewDto">
+		select
+			travel_review.location as location,
+			avg(ifnull(travel_review_comment.evaluation,0)) as evaluation
+		from
+			travel_review
+			left join travel_review_comment
+			on travel_review_comment.travel_review_seq = travel_review.seq
+		group by
+			travel_review.location
+		order by
+			evaluation desc
+		limit
+			0, 10
+	
+	</select>
+	<select id="getReviewList" resultType="com.travel360.travel360Server.domain.TravelReviewDto" parameterType="com.travel360.travel360Server.domain.TravelReviewDto">
+		select
+			travel_review.*,
+			evl.evaluation
+		from
+			travel_review,
+			(
+			select
+				travel_review.seq,
+				avg(ifnull(travel_review_comment.evaluation,0)) as evaluation
+			from
+				travel_review
+				left join travel_review_comment
+				on travel_review_comment.travel_review_seq = travel_review.seq
+			group by
+				travel_review.seq
+			) evl
+		where
+			evl.seq = travel_review.seq and
+			travel_review.location = #{location}	
+		limit
+			0, 10
+	</select>
+	<select id="getReview" resultType="com.travel360.travel360Server.domain.TravelReviewDto" parameterType="com.travel360.travel360Server.domain.TravelReviewDto">
+		select
+			travel_review.*,
+			evl.evaluation
+		from
+			travel_review,
+			(
+			select
+				travel_review.seq,
+				avg(ifnull(travel_review_comment.evaluation,0)) as evaluation
+			from
+				travel_review
+				left join travel_review_comment
+				on travel_review_comment.travel_review_seq = travel_review.seq
+			group by
+				travel_review.seq
+			) evl
+		where
+			evl.seq = travel_review.seq and
+			travel_review.seq = #{seq}
+	</select>
+</mapper>

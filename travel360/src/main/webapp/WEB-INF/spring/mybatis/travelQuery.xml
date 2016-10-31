@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+     
+<mapper namespace="travel">
+	<resultMap type="com.travel360.travel360Server.domain.TravelRecordDto" id="travelMap">
+		<id property="seq" column="seq"/>
+			<result property="start_date" column="start_date"/>
+			<result property="finish_date" column="finish_date"/>
+			<result property="presentation_image" column="presentation_image"/>
+			<result property="text" column="text"/>
+			<result property="latitude" column="latitude"/>
+			<result property="longitude" column="longitude"/>
+			<result property="title" column="title"/>
+			<result property="country" column="country"/>
+			<result property="city" column="city"/>
+		<association property="userinfo" javaType="com.travel360.travel360Server.domain.UserDto">
+			<id property="seq" column="user_seq"/>
+			<result property="name" column="name"/>
+			<result property="profile_image" column="profile_image"/>
+			<result property="email" column="email"/>
+		</association>
+	</resultMap>
+
+	<select id="checkNum" resultType="Integer">
+		select
+			max(seq) + 1
+		from
+			travel_record
+	</select>
+	
+	<insert id="allocateRecord" parameterType="com.travel360.travel360Server.domain.TravelRecordDto" useGeneratedKeys="true" keyProperty="seq">
+		insert into travel_record(user_info_seq,temp)
+		values(#{user_info_seq},false)
+	</insert>
+	
+	<select id="getImageList" parameterType="com.travel360.travel360Server.domain.TravelRecordDto" resultType="com.travel360.travel360Server.domain.PictureDto">
+	select
+		*
+	from
+		picture
+	where
+		picture.travel_record_seq = #{seq}
+	</select>
+	
+	<select id="getImage" parameterType="com.travel360.travel360Server.domain.PictureDto" resultType="com.travel360.travel360Server.domain.PictureDto">
+	select
+		*
+	from
+		picture
+	where
+		picture.seq = #{seq}
+	</select>
+	
+	<insert id="uploadImage" parameterType="com.travel360.travel360Server.domain.PictureDto" useGeneratedKeys="true" keyProperty="seq">
+	insert into
+		picture(picture_loc,picture_type,picture_group_seq,travel_record_seq)
+	values(#{picture_loc},#{picture_type},#{picture_group_seq},#{travel_record_seq})
+	</insert>
+	
+	<select id="getTravelList" resultMap="travelMap" parameterType="com.travel360.travel360Server.domain.SearchTravelDto">
+	select
+		travel_record.seq as seq,
+		travel_record.start_date as start_date,
+		travel_record.finish_date as finish_date,
+		travel_record.text as text,
+		travel_record.temp as temp,
+		travel_record.user_info_seq as user_info_seq,
+		travel_record.latitude as latitude,
+		travel_record.longitude as longitude,
+		travel_record.title as title,
+		travel_record.country as country,
+		travel_record.city as city,
+		
+		
+		picture.picture_loc as presentation_image,
+		
+		user_info.seq as user_seq,
+		user_info.name as name,
+		user_info.email as email,
+		user_info.profile_image profile_image,
+		
+		ifnull(comment_avg.avlvalue,0) as evaluation	
+	from
+		travel_record, picture, user_info,
+		(select
+			travel_record.seq as seq,
+			avg(travel_record_comment.evaluation) as avlvalue
+		from
+			travel_record
+            left join travel_record_comment
+            on travel_record_comment.travel_record_seq = travel_record.seq
+		group by
+			travel_record.seq) comment_avg
+	where
+		picture.seq = travel_record.presentation_image and
+		user_info.seq = travel_record.user_info_seq and
+		comment_avg.seq = travel_record.seq and
+		travel_record.start_date between #{start_date} and #{finish_date}
+		<if test="title != null">
+			AND title like #{title}
+		</if>
+	order by
+		<if test="distenceFlag == true">
+			 (pow(ifnull(travel_record.latitude,0)- #{latitude},2) + pow(ifnull(travel_record.longitude,0) - #{longitude},2)) asc,
+		</if>#{order} desc
+	limit
+		#{start_num}, #{number}
+	</select>
+	
+	<select id="getTravelRecord" parameterType="com.travel360.travel360Server.domain.TravelRecordDto"  resultMap="travelMap">
+	select
+		travel_record.seq as seq,
+		travel_record.start_date as start_date,
+		travel_record.finish_date as finish_date,
+		travel_record.text as text,
+		travel_record.temp as temp,
+		travel_record.user_info_seq as user_info_seq,
+		travel_record.latitude as latitude,
+		travel_record.longitude as longitude,
+		travel_record.title as title,
+		travel_record.country as country,
+		travel_record.city as city,
+
+		picture.picture_loc as presentation_image,
+		
+		user_info.seq as user_seq,
+		user_info.name as name,
+		user_info.email as email,
+		user_info.profile_image profile_image,
+		
+		ifnull(comment_avg.avlvalue,0) as evaluation
+	from
+		travel_record, picture, user_info,
+		(select
+			travel_record.seq as seq,
+			avg(travel_record_comment.evaluation) as avlvalue
+		from
+			travel_record
+            left join travel_record_comment
+            on travel_record_comment.travel_record_seq = travel_record.seq
+		group by
+			travel_record.seq) comment_avg
+	where
+		travel_record.seq = #{seq} and
+		picture.seq = travel_record.presentation_image and
+		user_info.seq = travel_record.user_info_seq and
+		comment_avg.seq = travel_record.seq
+	</select>
+	
+	<select id="getManyCommentTravels" resultMap="travelMap">
+	select
+		travel_record.seq as seq,
+		travel_record.start_date as start_date,
+		travel_record.finish_date as finish_date,
+		travel_record.text as text,
+		travel_record.temp as temp,
+		travel_record.user_info_seq as user_info_seq,
+		travel_record.latitude as latitude,
+		travel_record.longitude as longitude,
+		travel_record.title as title,
+		travel_record.country as country,
+		travel_record.city as city,
+
+		picture.picture_loc as presentation_image,
+		
+		user_info.seq as user_seq,
+		user_info.name as name,
+		user_info.email as email,
+		user_info.profile_image profile_image
+	from
+		travel_record, picture, user_info,
+		(select
+			travel_record.seq as seq,
+			count(travel_record_comment.seq) as comment_count
+		from
+			travel_record
+            left join travel_record_comment
+            on travel_record_comment.travel_record_seq = travel_record.seq
+		group by
+			travel_record.seq) comment_count
+	where
+		picture.seq = travel_record.presentation_image and
+		user_info.seq = travel_record.user_info_seq and
+		comment_count.seq = travel_record.seq and
+		comment_count <![CDATA[>=]]> 10	
+	</select>
+	
+	<update id="updateTravelRecord" parameterType="com.travel360.travel360Server.domain.TravelRecordDto">
+	update
+		travel_record
+	set
+		travel_record.start_date = #{start_date},
+		travel_record.finish_date = #{finish_date},
+		travel_record.text = #{text},
+		travel_record.temp = true,
+		travel_record.latitude = #{latitude},
+		travel_record.longitude = #{longitude},
+		travel_record.title = #{title},
+		travel_record.country = #{country},
+		travel_record.city = #{city},
+		travel_record.presentation_image = #{presentation_image}
+	where
+		travel_record.seq = #{seq}
+	</update>
+	
+	<select	id="getTravelCommentList" parameterType="com.travel360.travel360Server.domain.TravelRecordDto" resultType="com.travel360.travel360Server.domain.TravelRecordCommentDto">
+	select
+		travel_record_comment.seq,
+		travel_record_comment.write_date,
+		travel_record_comment.comment,
+		travel_record_comment.evaluation,
+		travel_record_comment.travel_record_seq,
+		travel_record_comment.user_info_seq,
+		user_info.id
+	from
+		travel_record_comment, user_info
+	where
+		travel_record_comment.travel_record_seq = #{seq} and
+		travel_record_comment.user_info_seq = user_info.seq
+	</select>
+	
+	<insert id="insertTravelComment" parameterType="com.travel360.travel360Server.domain.TravelRecordCommentDto">
+	insert into
+		travel_record_comment(write_date,comment,evaluation,travel_record_seq,user_info_seq)
+	values
+		(#{write_date},#{comment},#{evaluation},#{travel_record_seq},#{user_info_seq})
+	</insert>
+</mapper>

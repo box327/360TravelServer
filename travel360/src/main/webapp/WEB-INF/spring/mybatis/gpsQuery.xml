@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+     
+<mapper namespace="gps">
+	<resultMap type="com.travel360.travel360Server.domain.GPSMessageDto" id="gpsMap">
+		<id property="seq" column="seq"/>
+		<result property="lat" column="lat"/>
+		<result property="lon" column="lon"/>
+		<result property="message" column="message"/>
+		<association property="user" javaType="com.travel360.travel360Server.domain.UserDto">
+			<id property="seq" column="user_seq"/>
+			<result property="name" column="name"/>
+			<result property="profile_image" column="profile_image"/>
+			<result property="email" column="email"/>
+		</association>
+	</resultMap>
+	
+	<insert id="insertMessage" parameterType="com.travel360.travel360Server.domain.GPSMessageDto">
+		insert into gps_message(lat,lon,message,user_seq)
+		values(#{lat},#{lon},#{message},#{userSeq})
+	</insert>
+	
+	<select id="selectLocalMessage" parameterType="com.travel360.travel360Server.domain.GPSMessageDto" resultMap="gpsMap">
+		select
+			*
+		from
+			gps_message, user_info
+		where
+			gps_message.user_seq = user_info.seq and
+			acos(sin(gps_message.lat * pi() / 180) * sin(#{lat} * pi() / 180) + cos(gps_message.lon * pi() / 180) * cos(#{lat} * pi() / 180) * cos((gps_message.lon - #{lon}) * pi() / 180)) * 180 / pi() * 60 * 1.15 * 1.609344 * 1000 <![CDATA[<]]> 100
+	</select>
+</mapper>
